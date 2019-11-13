@@ -99,15 +99,16 @@ function deleteUser(req, res) {
 // Validate the information to log in
 function login(req, res) {
   const { email } = req.body;
+  const { password } = req.body;
 
   // Find the user and check if the password is correct
   User.findOne({ email }, (err, user) => {
     if (err) return res.status(500).send({ err });
     if (!user) return res.status(404).send({ message: 'No user found' });
-    bcrypt.compare(req.body.password, user.password, (error, result) => {
+    bcrypt.compare(password, user.password, (error, result) => {
       if (error) return res.status(401).json({ message: 'Auth failed' });
       if (result) {
-        const token = jwt.sign({ email: user.email, userId: user.id }, { expiresIn: '1h' });
+        const token = jwt.sign({ email, userId: user.id }, 'private', { expiresIn: 60 * 60 * 24 * 31 });
         return res.status(200).json({ message: 'Auth succesful', token });
       }
     });
