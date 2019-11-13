@@ -104,10 +104,10 @@ function login(req, res) {
   User.findOne({ email }, (err, user) => {
     if (err) return res.status(500).send({ err });
     if (!user) return res.status(404).send({ message: 'No user found' });
-    bcrypt.compare(req.body.password, user[0].password, (error, result) => {
+    bcrypt.compare(req.body.password, user.password, (error, result) => {
       if (error) return res.status(401).json({ message: 'Auth failed' });
       if (result) {
-        const token = jwt.sign({ email: user[0].email, userId: user[0].id }, { expiresIn: '1h' });
+        const token = jwt.sign({ email: user.email, userId: user.id }, { expiresIn: '1h' });
         return res.status(200).json({ message: 'Auth succesful', token });
       }
     });
