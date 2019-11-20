@@ -1,15 +1,15 @@
 const express = require('express');
 const userController = require('../controllers/userController');
+const checkAuth = require('../middlewares/check-auth');
 
 const router = express.Router();
 
 // Method and end of url needed to access each controller
-router.get('/', userController.getUsers);
-router.get('/:userId', userController.getUser);
+router.get('/', checkAuth, userController.getUsers);
+router.get('/:userId', checkAuth, userController.getUser);
 router.post('/', userController.createUser);
 router.post('/login', userController.login);
-router.put('/:userId', userController.replaceUser);
-router.patch('/:userId', userController.editUser);
-router.delete('/:userId', userController.deleteUser);
+router.patch('/:userId', checkAuth, userController.editUser);
+router.delete('/:userId', checkAuth, userController.deleteUser);
 
 module.exports = router;

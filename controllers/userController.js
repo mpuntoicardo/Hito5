@@ -47,40 +47,24 @@ function createUser(req, res) {
   });
 }
 
-// Replace the user information
-function replaceUser(req, res) {
-  const { userId } = req.params;
-  const { email } = req.body;
-  const { password } = req.body;
-  const { name } = req.body;
-  const { surname } = req.body;
-
-  if (!email || !name || !surname || !password) {
-    return res.status(400).send({ message: 'Missing params' });
-  }
-
-  // Create the new user
-  const userReplacement = req.body;
-
-  User.findById(userId, (err, user) => {
-    if (err) return res.status(404).send({ message: 'No user to replace found', err });
-
-    // Replaces the user
-    user.replaceOne(userReplacement, (error) => {
-      if (error) return res.status(500).send({ error });
-
-      return res.status(200).send({ message: 'User replaced' });
-    });
-  });
-}
 // Update the user information
 function editUser(req, res) {
   const { userId } = req.params;
-  // Update the
-  User.findByIdAndUpdate(userId, req.body, { new: true }, (error, user) => {
-    if (error) return res.status(500).send({ error });
-
-    return res.status(200).send({ message: 'User updated', user });
+  bcrypt.hash(req.body.password, 10, (wrong, hash) => {
+    if (wrong) return res.status(500).json({ error: wrong });
+    // Create a new user
+    const user = {
+      email: req.body.email,
+      password: hash,
+      surname: req.body.surname,
+      phone: req.body.phone,
+      name: req.body.name,
+    };
+    // Update the
+    User.findByIdAndUpdate(userId, user, { new: true }, (error, newUser) => {
+      if (error) return res.status(500).send({ error });
+      return res.status(200).send({ message: 'User updated', newUser });
+    });
   });
 }
 
@@ -108,7 +92,7 @@ function login(req, res) {
     bcrypt.compare(password, user.password, (error, result) => {
       if (error) return res.status(401).json({ message: 'Auth failed' });
       if (result) {
-        const token = jwt.sign({ email, userId: user.id }, 'private', { expiresIn: 60 * 60 * 24 * 31 });
+        const token = jwt.sign({ email, userId: user.id }, 'public', { expiresIn: 60 * 60 * 24 * 31 });
         return res.status(200).json({ message: 'Auth succesful', token });
       }
     });
@@ -119,7 +103,6 @@ module.exports = {
   getUser,
   getUsers,
   createUser,
-  replaceUser,
   editUser,
   deleteUser,
   login,
