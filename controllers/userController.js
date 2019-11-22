@@ -17,40 +17,44 @@ function getUsers(req, res) {
 // Get user object by ID
 function getUser(req, res) {
   const { userId } = req.params;
-
   // Finds the user with the id provided
   User.findById(userId, (error, user) => {
-    if (error) return res.status(404).send({ message: 'No users found', error });
-
+    if (error || user == null) return res.status(404).send({ message: 'No users found', error });
     return res.status(200).send(user);
   });
 }
 
 // Create and save a new user
 function createUser(req, res) {
-  bcrypt.hash(req.body.password, 10, (err, hash) => {
-    if (err) return res.status(500).json({ error: err });
-    // Create a new user
-    const user = new User({
-      email: req.body.email,
-      password: hash,
-      surname: req.body.surname,
-      phone: req.body.phone,
-      name: req.body.name,
-    });
-    // Save the new user
-    user.save((error, newUser) => {
-      if (error) return res.status(400).send({ message: 'Error saving user', error });
+  const pass = req.body.password;
+  if (pass.length) {
+    bcrypt.hash(req.body.password, Math.floor(Math.random() * 11) + 10, (err, hash) => {
+      if (err) return res.status(500).json({ error: err });
+      // Create a new user
+      const user = new User({
+        email: req.body.email,
+        password: hash,
+        surname: req.body.surname,
+        phone: req.body.phone,
+        name: req.body.name,
+      });
+      // Save the new user
+      user.save((error, newUser) => {
+        if (error) return res.status(400).send({ message: 'Error saving user', error });
 
-      return res.status(200).send({ message: 'Saved user', newUser });
+        return res.status(200).send({ message: 'Saved user', newUser });
+      });
     });
-  });
+  } else {
+    return res.status(404).send({ message: 'Invalid fields' });
+  }
 }
+
 
 // Update the user information
 function editUser(req, res) {
   const { userId } = req.params;
-  bcrypt.hash(req.body.password, 10, (wrong, hash) => {
+  bcrypt.hash(req.body.password, Math.floor(Math.random() * 11) + 10, (wrong, hash) => {
     if (wrong) return res.status(500).json({ error: wrong });
     // Create a new user
     const user = {
@@ -61,10 +65,24 @@ function editUser(req, res) {
       name: req.body.name,
     };
     // Update the
-    User.findByIdAndUpdate(userId, user, { new: true }, (error, newUser) => {
-      if (error) return res.status(500).send({ error });
-      return res.status(200).send({ message: 'User updated', newUser });
-    });
+    if (req.body.password.length === 0) {
+      User.findByIdAndUpdate(userId, {
+        $set: {
+          email: user.email,
+          surname: user.surname,
+          phone: user.phone,
+          name: user.name,
+        },
+      }, { new: true }, (error, newUser) => {
+        if (error) return res.status(500).send({ error });
+        return res.status(200).send({ message: 'User updated', newUser });
+      });
+    } else {
+      User.findByIdAndUpdate(userId, user, { new: true }, (error, newUser) => {
+        if (error) return res.status(500).send({ error });
+        return res.status(200).send({ message: 'User updated', newUser });
+      });
+    }
   });
 }
 
@@ -90,7 +108,7 @@ function login(req, res) {
     if (err) return res.status(500).send({ err });
     if (!user) return res.status(404).send({ message: 'No user found' });
     bcrypt.compare(password, user.password, (error, result) => {
-      if (error) return res.status(401).json({ message: 'Auth failed' });
+      if (error) return res.status(401).json({ message: 'Auth failed', error });
       if (result) {
         const token = jwt.sign({ email, userId: user.id }, 'public', { expiresIn: 60 * 60 * 24 * 31 });
         return res.status(200).json({ message: 'Auth succesful', token });
